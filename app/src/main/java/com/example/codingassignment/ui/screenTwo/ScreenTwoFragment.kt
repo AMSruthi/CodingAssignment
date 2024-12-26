@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
@@ -18,6 +19,9 @@ import org.koin.androidx.viewmodel.ext.android.activityViewModel
 class ScreenTwoFragment : Fragment() {
 
     private val viewModel: MainViewModel by activityViewModel()
+    private val initialOptions = mutableListOf("Home", "Work", "Other")
+
+    private val selectedValues = mutableListOf<String?>(null, null, null, null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,8 +59,26 @@ class ScreenTwoFragment : Fragment() {
 
         adapter.setDropDownViewResource(androidx.appcompat.R.layout.support_simple_spinner_dropdown_item)
 
-        spinners.forEach { spinnners ->
+
+        spinners.forEachIndexed { index, spinnners ->
             spinnners.adapter = adapter
+            spinnners.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>, view: View?, position: Int, id: Long
+                ) {
+                    val selectedValue = parent.getItemAtPosition(position).toString()
+                    selectedValues[index] = selectedValue
+                    if (index < spinners.size - 1) {
+                        val nextSpinner = spinners[index + 1]
+                        updateSpinnerOptions(nextSpinner)
+                    }
+                }
+                override fun onNothingSelected(parent: AdapterView<*>) {
+                }
+            }
+            if (index == 0) {
+                updateSpinnerOptions(spinnners)
+            }
         }
 
         viewModel.phoneNumber.observe(viewLifecycleOwner) { phoneumbers ->
@@ -68,10 +90,16 @@ class ScreenTwoFragment : Fragment() {
         val saveButton = view.findViewById<Button>(R.id.saveButton)
         saveButton.setOnClickListener {
             val phoneDetails = mutableListOf<PhoneNumberEntity>()
+            var otherCount = 0
             spinners.forEachIndexed { index, spinner ->
                 val type = when (spinner.selectedItem.toString()) {
                     "Home" -> "Home"
                     "Work" -> "Work"
+                    "Other" -> {
+                        otherCount++
+                        "Other$otherCount"
+                    }
+
                     else -> "Other"
                 }
                 phoneDetails.add(
@@ -90,4 +118,23 @@ class ScreenTwoFragment : Fragment() {
         }
 
     }
+
+    private fun updateSpinnerOptions(spinner: Spinner) {
+        val availableOptions = initialOptions.filterNot { selectedValues.contains(it) }
+
+        val newOptions = if ("Other" !in availableOptions) {
+            availableOptions + "Other"
+        } else {
+            availableOptions
+        }
+
+        val updatedAdapter = ArrayAdapter(
+            requireContext(),
+            androidx.appcompat.R.layout.support_simple_spinner_dropdown_item,
+            newOptions
+        )
+        updatedAdapter.setDropDownViewResource(androidx.appcompat.R.layout.support_simple_spinner_dropdown_item)
+        spinner.adapter = updatedAdapter
+    }
+
 }

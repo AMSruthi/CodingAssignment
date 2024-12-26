@@ -40,7 +40,12 @@ class ScreenThreeFragment : Fragment() {
             viewModel.getPhoneNumberDetails()
             viewModel.phoneNumberDetails.observe(viewLifecycleOwner) { phoneNumberDetails ->
                 displayView.text =
-                    phoneNumberDetails.joinToString("\n") { "${it.phoneNumber}: ${it.phoneType}" }
+                    phoneNumberDetails.joinToString("\n") {
+                        val phoneType = it.phoneType
+                        val displayType = if (phoneType.startsWith("Other")) "Other" else phoneType
+                        "${it.phoneNumber}: $displayType"
+                    }
+
             }
         }
 
